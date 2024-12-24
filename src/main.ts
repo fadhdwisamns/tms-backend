@@ -10,7 +10,7 @@ async function bootstrap() {
   // Configure Swagger
   configureSwagger(app);
   app.useGlobalFilters(new UnauthorizedFilter());
-  await app.listen(3000);
+  await app.listen(1000);
 }
 bootstrap();
 

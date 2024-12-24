@@ -8,7 +8,7 @@ export class OrderService {
   constructor(private prisma: PrismaService) {}
 
   async create(createOrderDto: CreateOrderDto) {
-    const { userId, companyId, customerId, description, status, truckId , orderId } = createOrderDto;
+    const { userId, companyId, customerId, description, status, truckId , orderId, multiPickup, multiDrop } = createOrderDto;
 
   
     // Validasi status order
@@ -16,15 +16,16 @@ export class OrderService {
       throw new BadRequestException('Invalid status: must be either "pickup" or "delivery"');
     }
     const uniqueOrderId = orderId || `ORDER${Date.now()}`;
-    // Ambil informasi truk berdasarkan truckId
-    let truck = await this.prisma.truck.findUnique({
-      where: { id: truckId },
-    });
 
+    // Ambil informasi truk berdasarkan truckId
+    let truck = await this.prisma.truck.findUnique({ where: { id: truckId } });
     if (!truck) {
       throw new BadRequestException('Truck not found');
     }
 
+    if ( multiPickup && !multiDrop) {
+      throw new BadRequestException('Multi-drop must be enabled for multi-pickup orders');
+    }
       // Ambil informasi rute untuk perhitungan jarak
       const routePlan = await this.prisma.routePlan.findFirst({
         where: { orderId: uniqueOrderId },
@@ -79,6 +80,7 @@ export class OrderService {
 
     // Hitung total harga
     const totalPrice = truckPrice + this.calculateAdditionalCharges(totalWeight, totalVolume);
+    // Ambil informasi rute untuk perhitungan jarak
 
     // Membuat entry PriceCalculation
     const priceCalculation = await this.prisma.priceCalculation.create({
@@ -109,10 +111,43 @@ export class OrderService {
         status,
         truck: { connect: { id: truck.id } }, // Menghubungkan order dengan truck yang dipilih
         priceCalculation: { connect: { id: priceCalculation.id } },  // Menghubungkan perhitungan harga dengan order
+        pickupLocations: {
+                  create: pickupLocations.map((loc) => ({
+                    address: loc.address,
+                    weight: loc.weight,
+                    volume: loc.volume,
+                  })),
+                },
       },
     });
   }
-  
+  //   const order = await this.prisma.order.create({
+  //     data: {
+  //       orderId: uniqueOrderId,
+  //       userId,
+  //       companyId,
+  //       customerId,
+  //       description,
+  //       status,
+  //       truckId: truck.id,
+  //       totalWeight,
+  //       // totalVolume,
+  //       // totalDistance,
+  //       // totalPrice,
+  //       multiPickup,
+  //       multiDrop,
+  //       pickupLocations: {
+  //         create: pickupLocations.map((loc) => ({
+  //           address: loc.address,
+  //           weight: loc.weight,
+  //           volume: loc.volume,
+  //         })),
+  //       },
+  //     },
+  //   });
+
+  //   return order;
+  // }
   // Fungsi untuk menghitung biaya tambahan berdasarkan berat dan volume
   calculateAdditionalCharges(weight: number, volume: number): number {
     let additionalCharge = 0;
@@ -140,6 +175,7 @@ export class OrderService {
         company: true,
         truck: true,
         priceCalculation: true,
+        pickupLocations: true,
       },
     });
   }

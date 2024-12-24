@@ -41,7 +41,6 @@ model Order {
   orderId                String            @unique
   customerName           String
   pickupDate             DateTime
-  createDate             DateTime          @default(now())
   dispatchImmediately    Boolean           @default(false)
   requireProofOfDelivery Boolean           @default(false)
   multiplePickups        Boolean           @default(false)
@@ -60,6 +59,11 @@ model Order {
   customerId             Int
   description            String
   status                 String
+  multiPickup            Boolean           @default(false)
+  multiDrop              Boolean           @default(false)
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+  totalWeight            Float?
 }
 
 model PickupLocation {

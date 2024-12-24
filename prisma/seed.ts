@@ -3,145 +3,134 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  // Create 5 companies
-  const companies = await Promise.all(
-    Array.from({ length: 5 }).map((_, index) =>
-      prisma.company.create({
-        data: {
-          name: `Company ${index + 1}`,
-          code: `JKT${Math.floor(Math.random() * 1000000)}`,
-          location: `Location ${index + 1}`,
-        },
-      })
-    )
-  );
+  // Create Companies
+  const companies = await prisma.company.createMany({
+    data: Array.from({ length: 5 }, (_, index) => ({
+      name: `Company ${index + 1}`,
+      code: `CODE${index + 1}`,
+      location: `Location ${index + 1}`,
+    })),
+  });
 
-  // Create 20 users
-  const users = await Promise.all(
-    Array.from({ length: 20 }).map((_, index) =>
-      prisma.user.create({
-        data: {
-          email: `user${index + 1}@example.com`,
-          password: `password${index + 1}`,
-          role: index % 3 === 0 ? 'admin' : index % 2 === 0 ? 'driver' : 'user',
-          companyId: companies[index % 5].id, // Assign to a random company
-        },
-      })
-    )
-  );
+  // Create Users
+  await prisma.user.createMany({
+    data: Array.from({ length: 5 }, (_, index) => ({
+      email: `user${index + 1}@example.com`,
+      password: `password${index + 1}`,
+      role: index === 0 ? 'admin' : 'user',
+      companyId: index + 1, // assuming the companyIds are sequential
+    })),
+  });
 
-  // Create 20 trucks
-  const trucks = await Promise.all(
-    Array.from({ length: 20 }).map((_, index) =>
-      prisma.truck.create({
-        data: {
-          type: `Truck Type ${index + 1}`,
-          maxVolume: Math.random() * 100,
-          maxWeight: Math.random() * 1000,
-          ratePerKm: Math.random() * 10,
-        },
-      })
-    )
-  );
+  // Create Trucks
+  const trucks = await prisma.truck.createMany({
+    data: [
+      { type: 'Box Truck', maxVolume: 50, maxWeight: 1000, ratePerKm: 5 },
+      { type: 'Pickup Truck', maxVolume: 20, maxWeight: 500, ratePerKm: 4 },
+    ],
+  });
 
-  // Create 20 orders
-  const orders = await Promise.all(
-    Array.from({ length: 20 }).map((_, index) =>
-      prisma.order.create({
-        data: {
-          orderId: `ORDER${index + 1}`,
-          customerName: `Customer ${index + 1}`,
-          pickupDate: new Date(),
-          type: index % 2 === 0 ? 'pickup' : 'delivery',
-          description: `Order description ${index + 1}`,
-          status: 'Pending',
-          companyId: companies[index % 5].id,
-          userId: users[index % 20].id, // Assign to a random user
-          truckId: trucks[index % 20].id, // Assign to a random truck
-          customerId: index + 1,
-        },
-      })
-    )
-  );
+  // Create Truck Rates
+  await prisma.truckRate.createMany({
+    data: [
+      { truckType: 'Box Truck', ratePerKm: 5 },
+      { truckType: 'Pickup Truck', ratePerKm: 4 },
+    ],
+  });
 
-  // Create 20 pickup locations
-  await Promise.all(
-    Array.from({ length: 20 }).map((_, index) =>
-      prisma.pickupLocation.create({
-        data: {
-          address: `Pickup Address ${index + 1}`,
-          volume: Math.random() * 10,
-          weight: Math.random() * 100,
-          orderId: orders[index % 20].id,
-        },
-      })
-    )
-  );
+  // Create Orders
+  for (let index = 0; index < 20; index++) {
+    const order = await prisma.order.create({
+      data: {
+        orderId: `ORD${index + 1}`,
+        customerName: `Customer ${index + 1}`,
+        pickupDate: new Date(),
+        type: index % 2 === 0 ? 'pickup' : 'delivery',
+        userId: (index % 5) + 1, // Assuming user IDs are 1 to 5
+        companyId: (index % 5) + 1, // Assuming company IDs are 1 to 5
+        customerId: index + 1,
+        description: `Order description for order ${index + 1}`,
+        status: 'pending',
+      },
+    });
 
-  // Create 20 drop locations
-  await Promise.all(
-    Array.from({ length: 20 }).map((_, index) =>
-      prisma.dropLocation.create({
-        data: {
-          address: `Drop Address ${index + 1}`,
-          volume: Math.random() * 10,
-          weight: Math.random() * 100,
-          orderId: orders[index % 20].id,
+    // Create Pickup and Drop Locations
+    await prisma.pickupLocation.createMany({
+      data: [
+        {
+          address: `Pickup Address 1 for order ${order.orderId}`,
+          volume: 10,
+          weight: 100,
+          orderId: order.id,
         },
-      })
-    )
-  );
-
-  // Create 20 route plans
-  await Promise.all(
-    Array.from({ length: 20 }).map((_, index) =>
-      prisma.routePlan.create({
-        data: {
-          orderId: orders[index % 20].id,
-          routeSteps: JSON.stringify(['Step 1', 'Step 2']),
-          distance: Math.random() * 100,
-          estimatedTime: Math.random() * 60,
+        {
+          address: `Pickup Address 2 for order ${order.orderId}`,
+          volume: 10,
+          weight: 100,
+          orderId: order.id,
         },
-      })
-    )
-  );
+      ],
+    });
 
-  // Create 20 assigned details
-  await Promise.all(
-    Array.from({ length: 20 }).map((_, index) =>
-      prisma.assignedDetails.create({
-        data: {
-          orderId: orders[index % 20].id,
-          vendorName: `Vendor ${index + 1}`,
-          vendorId: `VENDOR${index + 1}`,
-          driverId: `DRIVER${index + 1}`,
-          driverName: `Driver ${index + 1}`,
+    await prisma.dropLocation.createMany({
+      data: [
+        {
+          address: `Drop Address 1 for order ${order.orderId}`,
+          volume: 10,
+          weight: 100,
+          orderId: order.id,
         },
-      })
-    )
-  );
-
-  // Create 20 price calculations
-  await Promise.all(
-    Array.from({ length: 20 }).map((_, index) =>
-      prisma.priceCalculation.create({
-        data: {
-          orderId: orders[index % 20].id,
-          distance: Math.random() * 100,
-          totalWeight: Math.random() * 1000,
-          totalVolume: Math.random() * 100,
-          truckPrice: Math.random() * 100,
-          totalPrice: Math.random() * 1000,
+        {
+          address: `Drop Address 2 for order ${order.orderId}`,
+          volume: 10,
+          weight: 100,
+          orderId: order.id,
         },
-      })
-    )
-  );
+      ],
+    });
 
-  console.log('Database seeded successfully!');
+    // Create Route Plan
+    await prisma.routePlan.create({
+      data: {
+        orderId: order.id,
+        routeSteps: JSON.stringify([
+          { step: 'Start', location: 'Pickup Location 1' },
+          { step: 'End', location: 'Drop Location 1' },
+        ]),
+        distance: 20,
+        estimatedTime: 30,
+      },
+    });
+
+    // Create Assigned Details
+    await prisma.assignedDetails.create({
+      data: {
+        orderId: order.id,
+        vendorName: `Vendor ${order.orderId}`,
+        vendorId: `VENDOR${order.orderId}`,
+        driverId: `DRIVER${order.orderId}`,
+        driverName: `Driver for ${order.orderId}`,
+      },
+    });
+
+    // Create Price Calculations
+    await prisma.priceCalculation.create({
+      data: {
+        orderId: order.id,
+        distance: 20,
+        totalWeight: 200,
+        totalVolume: 10,
+        truckPrice: 50,
+        totalPrice: 200,
+      },
+    });
+  }
+
+  console.log('Seeding completed!');
 }
 
 main()
-  .catch((e) => {
+  .catch(e => {
     console.error(e);
     process.exit(1);
   })

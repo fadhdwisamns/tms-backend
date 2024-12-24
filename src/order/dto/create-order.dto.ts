@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsInt, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsString, IsInt, IsOptional, isString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateOrderDto {
@@ -36,4 +36,23 @@ export class CreateOrderDto {
   @IsString()
   @IsOptional() 
   orderId?: string;
+
+  @ApiProperty({ example: 'true'})
+  @IsString()
+  @IsOptional()
+  multiPickup?: boolean;
+
+  @ApiProperty()
+  @IsString()
+  @IsOptional()
+  multiDrop?: boolean;
+
+  @ApiProperty({ example: 100.5 })
+  @IsOptional()
+  totalWeight?: number; // Tambahkan properti ini
+
+  @ApiProperty({ example: 100.5 })
+  @IsOptional()
+  totalVolume?: number; // Tambahkan properti ini
+  
 }
