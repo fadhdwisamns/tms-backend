@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsInt } from 'class-validator';
+import { IsNotEmpty, IsString, IsInt, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateOrderDto {
@@ -26,4 +26,14 @@ export class CreateOrderDto {
   @IsString()
   @IsNotEmpty()
   status: string;
+
+  @ApiProperty({ example: 3, description: 'ID truk yang terkait dengan pesanan' })
+  @IsInt()
+  @IsOptional() 
+  truckId?: number;
+
+  @ApiProperty({ example: 'ORDER123456', description: 'ID pesanan unik' })
+  @IsString()
+  @IsOptional() 
+  orderId?: string;
 }

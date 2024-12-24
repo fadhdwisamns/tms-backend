@@ -6,9 +6,9 @@ import { JwtAuthGuard } from 'src/shared/guards/jwt-auth-guard';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('orders') // Menandai endpoint untuk dokumentasi Swagger
-@ApiBearerAuth()
+// @ApiBearerAuth()
 @Controller('orders')
-@UseGuards(JwtAuthGuard)
+// @UseGuards(JwtAuthGuard)
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
@@ -23,18 +23,18 @@ export class OrderController {
   }
 
 
-  @Get(':id')
-  findOne(@Param('id') id: number) {
-    return this.orderService.findOne(id);
+  @Get(':orderId')
+  findOne(@Param('orderId') orderId: string) {
+    return this.orderService.findOne(orderId);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: number, @Body() updateOrderDto: UpdateOrderDto) {
-    return this.orderService.update(id, updateOrderDto);
+  @Patch(':orderId')
+  update(@Param('orderId') orderId: string, @Body() updateOrderDto: UpdateOrderDto) {
+    return this.orderService.update(orderId, updateOrderDto);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: number) {
-    return this.orderService.remove(id);
+  @Delete(':orderId')
+  remove(@Param('orderId') orderId: string) {
+    return this.orderService.remove(orderId);
   }
 }

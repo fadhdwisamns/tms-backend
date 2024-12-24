@@ -37,7 +37,7 @@ model Company {
 }
 
 model Order {
-  id                     Int               @id @default(autoincrement())
+  id                     String            @id @default(uuid())
   orderId                String            @unique
   customerName           String
   pickupDate             DateTime
@@ -67,7 +67,7 @@ model PickupLocation {
   address String
   volume  Float // Volume in cubic meters
   weight  Float // Weight in kilograms
-  orderId Int
+  orderId String
   order   Order  @relation(fields: [orderId], references: [id])
 }
 
@@ -76,13 +76,13 @@ model DropLocation {
   address String
   volume  Float // Volume in cubic meters
   weight  Float // Weight in kilograms
-  orderId Int
+  orderId String
   order   Order  @relation(fields: [orderId], references: [id])
 }
 
 model RoutePlan {
   id            Int    @id @default(autoincrement())
-  orderId       Int
+  orderId       String
   order         Order  @relation(fields: [orderId], references: [id])
   routeSteps    String // JSON string to store route steps
   distance      Float // Distance in kilometers
@@ -90,9 +90,9 @@ model RoutePlan {
 }
 
 model AssignedDetails {
-  id         Int    @id @default(autoincrement())
-  orderId    Int    @unique
-  order      Order  @relation(fields: [orderId], references: [id])
+  id         Int        @id @default(autoincrement())
+  orderId    String     @unique
+  order      Order      @relation(fields: [orderId], references: [id])
   vendorName String
   vendorId   String
   driverId   String
@@ -100,13 +100,13 @@ model AssignedDetails {
 }
 
 model PriceCalculation {
-  id          Int   @id @default(autoincrement())
-  orderId     Int   @unique
-  order       Order @relation(fields: [orderId], references: [id])
-  distance    Float // Distance in kilometers
+  id          Int       @id @default(autoincrement())
+  orderId     String    @unique
+  order       Order     @relation(fields: [orderId], references: [id])
+  distance    Float     // Distance in kilometers
   totalWeight Float
   totalVolume Float
-  truckPrice  Float // Price based on truck type
+  truckPrice  Float     // Price based on truck type
   totalPrice  Float
 }
 
