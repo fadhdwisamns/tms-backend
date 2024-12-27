@@ -1,5 +1,37 @@
-import { IsNotEmpty, IsString, IsInt, IsOptional, isString } from 'class-validator';
+import { IsNotEmpty, IsString, IsInt, IsOptional, isString , ValidateNested ,IsArray } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+
+class PickupDetailDto {
+  @IsNotEmpty()
+  length: number;
+
+  @IsNotEmpty()
+  width: number;
+
+  @IsNotEmpty()
+  height: number;
+
+  @IsNotEmpty()
+  weightVolume: number;
+
+  @IsNotEmpty()
+  weightActual: number;
+}
+
+class PickupLocationDto {
+  @IsString()
+  address: string;
+
+  @IsNotEmpty()
+  volume: number;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PickupDetailDto)
+  pickupDetails: PickupDetailDto[];
+  weight: any;
+}
 
 export class CreateOrderDto {
   @ApiProperty({ example: 1, description: 'ID pengguna yang membuat pesanan' })
@@ -54,5 +86,10 @@ export class CreateOrderDto {
   @ApiProperty({ example: 100.5 })
   @IsOptional()
   totalVolume?: number; // Tambahkan properti ini
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PickupLocationDto)
+  pickupLocations: PickupLocationDto[];
   
 }

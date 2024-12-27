@@ -4,101 +4,102 @@ const prisma = new PrismaClient();
 
 async function main() {
   // Create Companies
-  const companies = await prisma.company.createMany({
-    data: Array.from({ length: 5 }, (_, index) => ({
-      name: `Company ${index + 1}`,
-      code: `CODE${index + 1}`,
-      location: `Location ${index + 1}`,
+  await prisma.company.createMany({
+    data: Array.from({ length: 5 }).map((_, i) => ({
+      name: `Company ${i + 1}`,
+      code: `COMP${Date.now()}${i}`, // Pastikan nilai code unik
+      location: `Location ${i + 1}`,
     })),
   });
 
   // Create Users
   await prisma.user.createMany({
-    data: Array.from({ length: 5 }, (_, index) => ({
-      email: `user${index + 1}@example.com`,
-      password: `password${index + 1}`,
-      role: index === 0 ? 'admin' : 'user',
-      companyId: index + 1, // assuming the companyIds are sequential
+    data: Array.from({ length: 5 }).map((_, i) => ({
+      email: `user${i + 1}@example.com`,
+      password: `password${i + 1}`,
+      role: 'user',
+      companyId: i + 1,
     })),
   });
 
   // Create Trucks
-  const trucks = await prisma.truck.createMany({
-    data: [
-      { type: 'Box Truck', maxVolume: 50, maxWeight: 1000, ratePerKm: 5 },
-      { type: 'Pickup Truck', maxVolume: 20, maxWeight: 500, ratePerKm: 4 },
-    ],
+  await prisma.truck.createMany({
+    data: Array.from({ length: 5 }).map((_, i) => ({
+      type: `Truck Type ${i + 1}`,
+      maxVolume: 100 + i * 10,
+      maxWeight: 1000 + i * 100,
+      ratePerKm: 5 + i,
+    })),
   });
 
-  // Create Truck Rates
-  await prisma.truckRate.createMany({
-    data: [
-      { truckType: 'Box Truck', ratePerKm: 5 },
-      { truckType: 'Pickup Truck', ratePerKm: 4 },
-    ],
+  // Create Customers
+  await prisma.customer.createMany({
+    data: Array.from({ length: 5 }).map((_, i) => ({
+      accountId: `ACC${Date.now()}${i}`, // Pastikan nilai accountId unik
+      customerName: `Customer ${i + 1}`,
+      contactName: `Contact ${i + 1}`,
+      phoneNumber: `123456789${i}`,
+      zipCode: `ZIP${i + 1}`,
+      province: `Province ${i + 1}`,
+      city: `City ${i + 1}`,
+      district: `District ${i + 1}`,
+      subDistrict: `SubDistrict ${i + 1}`,
+      building: `Building ${i + 1}`,
+      street: `Street ${i + 1}`,
+    })),
   });
 
   // Create Orders
-  for (let index = 0; index < 20; index++) {
+  for (let i = 0; i < 25; i++) {
+    const uniqueOrderId = `ORDER${Date.now()}${i}`;
     const order = await prisma.order.create({
       data: {
-        orderId: `ORD${index + 1}`,
-        customerName: `Customer ${index + 1}`,
+        orderId: uniqueOrderId,
+        customerName: `Customer ${i + 1}`,
         pickupDate: new Date(),
-        type: index % 2 === 0 ? 'pickup' : 'delivery',
-        userId: (index % 5) + 1, // Assuming user IDs are 1 to 5
-        companyId: (index % 5) + 1, // Assuming company IDs are 1 to 5
-        customerId: index + 1,
-        description: `Order description for order ${index + 1}`,
+        dispatchImmediately: false,
+        requireProofOfDelivery: false,
+        multiplePickups: false,
+        type: 'pickup',
+        user: { connect: { id: (i % 5) + 1 } },
+        company: { connect: { id: (i % 5) + 1 } },
+        customer: { connect: { id: (i % 5) + 1 } },
+        description: `Order description ${i + 1}`,
         status: 'pending',
+        truck: { connect: { id: (i % 5) + 1 } },
+        pickupLocations: {
+          create: [
+            {
+              address: `Address ${i + 1}`,
+              volume: 10 + i,
+              weight: 100 + i * 10,
+              //            orderId: uniqueOrderId, // Pastikan orderId sesuai
+              pickupDetails: {
+                create: [
+                  {
+                    length: 2 + i,
+                    width: 2 + i,
+                    height: 2 + i,
+                    weightVolume: 8 + i,
+                    weightActual: 10 + i,
+                  },
+                ],
+              },
+            },
+          ],
+        },
       },
     });
 
-    // Create Pickup and Drop Locations
-    await prisma.pickupLocation.createMany({
-      data: [
-        {
-          address: `Pickup Address 1 for order ${order.orderId}`,
-          volume: 10,
-          weight: 100,
-          orderId: order.id,
-        },
-        {
-          address: `Pickup Address 2 for order ${order.orderId}`,
-          volume: 10,
-          weight: 100,
-          orderId: order.id,
-        },
-      ],
-    });
-
-    await prisma.dropLocation.createMany({
-      data: [
-        {
-          address: `Drop Address 1 for order ${order.orderId}`,
-          volume: 10,
-          weight: 100,
-          orderId: order.id,
-        },
-        {
-          address: `Drop Address 2 for order ${order.orderId}`,
-          volume: 10,
-          weight: 100,
-          orderId: order.id,
-        },
-      ],
-    });
-
-    // Create Route Plan
-    await prisma.routePlan.create({
+    // Create Price Calculations
+    await prisma.priceCalculation.create({
       data: {
         orderId: order.id,
-        routeSteps: JSON.stringify([
-          { step: 'Start', location: 'Pickup Location 1' },
-          { step: 'End', location: 'Drop Location 1' },
-        ]),
-        distance: 20,
-        estimatedTime: 30,
+        distance: 20 + i,
+        totalWeight: 200 + i * 10,
+        totalVolume: 10 + i,
+        truckPrice: 50 + i * 5,
+        totalPrice: 200 + i * 20,
       },
     });
 
@@ -110,18 +111,6 @@ async function main() {
         vendorId: `VENDOR${order.orderId}`,
         driverId: `DRIVER${order.orderId}`,
         driverName: `Driver for ${order.orderId}`,
-      },
-    });
-
-    // Create Price Calculations
-    await prisma.priceCalculation.create({
-      data: {
-        orderId: order.id,
-        distance: 20,
-        totalWeight: 200,
-        totalVolume: 10,
-        truckPrice: 50,
-        totalPrice: 200,
       },
     });
   }

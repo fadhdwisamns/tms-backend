@@ -57,6 +57,7 @@ model Order {
   companyId              Int
   company                Company           @relation(fields: [companyId], references: [id])
   customerId             Int
+  customer               Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
   description            String
   status                 String
   multiPickup            Boolean           @default(false)
@@ -67,12 +68,24 @@ model Order {
 }
 
 model PickupLocation {
-  id      Int    @id @default(autoincrement())
-  address String
-  volume  Float // Volume in cubic meters
-  weight  Float // Weight in kilograms
-  orderId String
-  order   Order  @relation(fields: [orderId], references: [id])
+  id            Int            @id @default(autoincrement())
+  address       String
+  volume        Float // Volume in cubic meters
+  weight        Float // Weight in kilograms
+  orderId       String
+  order         Order          @relation(fields: [orderId], references: [id])
+  pickupDetails PickupDetail[]
+}
+
+model PickupDetail {
+  id               Int            @id @default(autoincrement())
+  pickupLocationId Int
+  length           Float
+  width            Float
+  height           Float
+  weightVolume     Float
+  weightActual     Float
+  pickupLocation   PickupLocation @relation(fields: [pickupLocationId], references: [id])
 }
 
 model DropLocation {
@@ -94,9 +107,9 @@ model RoutePlan {
 }
 
 model AssignedDetails {
-  id         Int        @id @default(autoincrement())
-  orderId    String     @unique
-  order      Order      @relation(fields: [orderId], references: [id])
+  id         Int    @id @default(autoincrement())
+  orderId    String @unique
+  order      Order  @relation(fields: [orderId], references: [id])
   vendorName String
   vendorId   String
   driverId   String
@@ -104,13 +117,13 @@ model AssignedDetails {
 }
 
 model PriceCalculation {
-  id          Int       @id @default(autoincrement())
-  orderId     String    @unique
-  order       Order     @relation(fields: [orderId], references: [id])
-  distance    Float     // Distance in kilometers
+  id          Int    @id @default(autoincrement())
+  orderId     String @unique
+  order       Order  @relation(fields: [orderId], references: [id])
+  distance    Float // Distance in kilometers
   totalWeight Float
   totalVolume Float
-  truckPrice  Float     // Price based on truck type
+  truckPrice  Float // Price based on truck type
   totalPrice  Float
 }
 
@@ -127,4 +140,20 @@ model TruckRate {
   id        Int    @id @default(autoincrement())
   truckType String @unique
   ratePerKm Float
+}
+
+model Customer {
+  id           Int     @id @default(autoincrement())
+  accountId    String  @unique
+  customerName String
+  contactName  String
+  phoneNumber  String
+  zipCode      String
+  province     String
+  city         String
+  district     String
+  subDistrict  String
+  building     String
+  street       String
+  orders       Order[]
 }

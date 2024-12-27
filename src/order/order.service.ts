@@ -1,16 +1,15 @@
-import { BadRequestException, Injectable } from '@nestjs/common'; 
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../shared/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 
 @Injectable()
 export class OrderService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(createOrderDto: CreateOrderDto) {
-    const { userId, companyId, customerId, description, status, truckId , orderId, multiPickup, multiDrop } = createOrderDto;
+    const { userId, companyId, customerId, description, status, truckId, orderId, multiPickup, multiDrop } = createOrderDto;
 
-  
     // Validasi status order
     if (!['pickup', 'delivery'].includes(status)) {
       throw new BadRequestException('Invalid status: must be either "pickup" or "delivery"');
@@ -28,7 +27,7 @@ export class OrderService {
     }
       // Ambil informasi rute untuk perhitungan jarak
       const routePlan = await this.prisma.routePlan.findFirst({
-        where: { orderId: uniqueOrderId },
+        where: { orderId },
       });
 
     if (!routePlan) {
@@ -41,6 +40,7 @@ export class OrderService {
     // Ambil informasi pickup locations untuk perhitungan berat dan volume
     const pickupLocations = await this.prisma.pickupLocation.findMany({
       where: { orderId: uniqueOrderId },
+      include: { pickupDetails: true }, // Include pickupDetails in the query
     });
 
     const totalWeight = pickupLocations.reduce((acc, location) => acc + location.weight, 0);
@@ -95,29 +95,38 @@ export class OrderService {
     });
 
     
-    const pickupLocation = await this.prisma.pickupLocation.findMany({
-      where: { orderId: uniqueOrderId },
-    })
+    // const pickupLocation = await this.prisma.pickupLocation.findMany({
+    //   where: { orderId: uniqueOrderId },
+    // })
     return this.prisma.order.create({
       data: {
-        orderId: `ORDER${Date.now()}`, // Menambahkan orderId yang unik
+        orderId: uniqueOrderId, // Menambahkan orderId yang unik
         customerName: `Customer ${customerId}`, // Menambahkan customerName
         pickupDate: new Date(), // Menambahkan pickupDate (misalnya waktu sekarang)
         type: status === 'delivery' ? 'delivery' : 'pickup', // Menambahkan type berdasarkan status
         user: { connect: { id: userId } },
         company: { connect: { id: companyId } },
-        customerId,
+        customer: { connect: { id: customerId } },
         description,
         status,
         truck: { connect: { id: truck.id } }, // Menghubungkan order dengan truck yang dipilih
         priceCalculation: { connect: { id: priceCalculation.id } },  // Menghubungkan perhitungan harga dengan order
         pickupLocations: {
-                  create: pickupLocations.map((loc) => ({
-                    address: loc.address,
-                    weight: loc.weight,
-                    volume: loc.volume,
-                  })),
-                },
+          create: pickupLocations.map((loc) => ({
+            address: loc.address,
+            volume: loc.volume,
+            weight: loc.weight,
+            pickupDetails: {
+              create: loc.pickupDetails?.map((detail) => ({
+                length: detail.length,
+                width: detail.width,
+                height: detail.height,
+                weightVolume: detail.weightVolume,
+                weightActual: detail.weightActual,
+              })) || [],
+            },
+          })),
+        },
       },
     });
   }
@@ -188,14 +197,58 @@ export class OrderService {
         company: true,
         truck: true,
         priceCalculation: true,
+        pickupLocations: true,
       },
     });
   }
 
+  async getPickupDetails(orderId: string) {
+    const pickupLocations = await this.prisma.pickupLocation.findMany({
+      where: { orderId },
+      include: { pickupDetails: true },
+    });
+    if (!pickupLocations || pickupLocations.length === 0) {
+      throw new BadRequestException('No pickup locations found for the given order ID');
+    }
+    return pickupLocations.flatMap(location => location.pickupDetails);
+  }
+  async getPickupLocations(orderId: string) {
+    const pickupLocations = await this.prisma.pickupLocation.findMany({
+      where: { orderId },
+      include: { pickupDetails: true },
+    });
+    return pickupLocations.length === 0 ? [] : pickupLocations;
+  }
+
   update(orderId: string, updateOrderDto: UpdateOrderDto) {
+    const { userId, companyId, customerId, truckId, status, description, pickupLocations } = updateOrderDto;
+
     return this.prisma.order.update({
       where: { orderId },
-      data: updateOrderDto,
+      data: {
+        user: userId ? { connect: { id: userId } } : undefined,
+        company: companyId ? { connect: { id: companyId } } : undefined,
+        customer: customerId ? { connect: { id: customerId } } : undefined,
+        truck: truckId ? { connect: { id: truckId } } : undefined,
+        description,
+        status,
+        pickupLocations: pickupLocations ? {
+          create: pickupLocations.map((loc) => ({
+            address: loc.address,
+            volume: loc.volume,
+            weight: loc.weight,
+            pickupDetails: {
+              create: loc.pickupDetails.map((detail) => ({
+                length: detail.length,
+                width: detail.width,
+                height: detail.height,
+                weightVolume: detail.weightVolume,
+                weightActual: detail.weightActual,
+              })),
+            },
+          })),
+        } : undefined,
+      },
     });
   }
 

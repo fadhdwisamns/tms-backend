@@ -3,12 +3,12 @@ import { OrderService } from './order.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { JwtAuthGuard } from 'src/shared/guards/jwt-auth-guard';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 @ApiTags('orders') // Menandai endpoint untuk dokumentasi Swagger
-// @ApiBearerAuth()
+@ApiBearerAuth()
 @Controller('orders')
-// @UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard)
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
@@ -36,5 +36,21 @@ export class OrderController {
   @Delete(':orderId')
   remove(@Param('orderId') orderId: string) {
     return this.orderService.remove(orderId);
+  }
+
+  @Get(':orderId/pickup-details')
+  @ApiOperation({ summary: 'Get pickup details by order ID' })
+  @ApiResponse({ status: 200, description: 'Pickup details retrieved successfully.' })
+  @ApiResponse({ status: 404, description: 'Order not found.' })
+  async getPickupDetails(@Param('orderId') orderId: string) {
+    return this.orderService.getPickupDetails(orderId);
+  }
+
+  @Get(':orderId/pickup-location')
+  @ApiOperation({ summary: 'Get pickup location by order ID' })
+  @ApiResponse({ status: 200, description: 'Pickup location retrieved successfully.' })
+  @ApiResponse({ status: 404, description: 'Order not found.' })
+  async getPickupLocation(@Param('orderId') orderId: string) {
+    return this.orderService.getPickupLocations(orderId);
   }
 }
